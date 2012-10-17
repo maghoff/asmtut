@@ -1,4 +1,4 @@
-TARGETS=hello true
+TARGETS=hello
 ENTRY_POINT=main
 ASM_FLAGS=-f macho64
 LINK_FLAGS=-macosx_version_min 10.6 -e $(ENTRY_POINT)

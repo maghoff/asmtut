@@ -1,4 +1,4 @@
 syntax: glob
 *.o
-hello
-true
+lesson01/true
+lesson02/hello
