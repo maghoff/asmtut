@@ -1,4 +1,4 @@
-#asmtut 3: Labels (Follow-up to https://plus.google.com/111794994501300143213/posts/TardBAAtq4e)
+#asmtut 3: Redundancies (Follow-up to https://plus.google.com/111794994501300143213/posts/TardBAAtq4e)
 
 This time we will automate stuff with the assembler.
 
@@ -75,7 +75,7 @@ Your source code might now look like this: https://bitbucket.org/maghoff/asmtut/
 
 This is getting ridiculous to read and write. We already know how to get rid of the repeated numerical constant; Add "width equ 80", and substitute the numerical literals appropriately.
 
-However, we have an additional ace up our sleeve to help with this ridiculous explotion of lines: Macros.
+However, we have an additional ace up our sleeve to help with this explosion of lines: Macros.
 
     width equ 80
 
@@ -115,4 +115,4 @@ Your code should now be similar to this: https://bitbucket.org/maghoff/asmtut/sr
 
 _Exercise:_ Make something nice with macros. I'm pretty sure there must be an even less ugly way of defining this data :) It should be possible to make a macro that takes in width and height and spits out a box.
 
-_Next lesson: TBA_
+_Next lesson: TBA (Will contain proper assembly! I promise!)_
