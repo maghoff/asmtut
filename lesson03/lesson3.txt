@@ -1,0 +1,35 @@
+#asmtut 3: Labels
+
+This time we will automate stuff with the assembler.
+
+*Step 6: String length*
+
+In our Hello world-implementation, we used a tedious and error prone mechanism to measure the length of the string; counting by brain. Let's offload that to the computer. (http://www.smbc-comics.com/index.php?db=comics&id=2039)
+
+NASM doesn't realize that _hello_world_ represents a string for us. For NASM it is just a label, and in fact we could have written _hello_world:_ with a colon, just like the _main:_-label. However, _we_ still know that it is a string, and we can calculate its length by adding a label after it:
+
+    hello_world:     db   "Hello World!", 0x0a
+    hello_world_end:
+
+We tack the colon onto our labels to get rid of a warning from NASM.
+
+Now, we can use the "Critical Expression" (http://www.tortall.net/projects/yasm/manual/html/nasm-crit.html) _hello_world_end - hello_world_ to calculate the length of the string in the code:
+
+    mov rdx, hello_world_end - hello_world
+
+We can also define constants with the keyword _equ_:
+
+    hello_world_size   equ   hello_world_end - hello_world
+
+Let's stick this in the _data_ section right under _hello_world_end_, and later on use this as the string length:
+
+    mov rdx, hello_world_size
+
+Even though the constant is in the _data_ section, it will not be stored in the assembled binary as data. It will instead be substituted by its value during assembly. You can inspect this with _otool -d_ and _otool -tv_ as we did before.
+
+Finally, we can get rid of _hello_world_end_ by using the special symbol _$_, which in NASM evaluates to the address at the beginning of the line. This is all we need:
+
+	hello_world        db    "Hello World!", 0x0a
+	hello_world_size   equ   $ - hello_world
+
+Your asm-file might now look like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson02/step1.asm

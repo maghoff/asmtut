@@ -1,4 +1,4 @@
-syntax: glob
-*.o
-lesson01/true
-lesson02/hello
+^.*\.o$
+^lesson01/true$
+^lesson02/hello$
+^lesson.*/part\d+$
