@@ -25,11 +25,82 @@ Let's stick this in the _data_ section right under _hello_world_end_, and later 
 
     mov rdx, hello_world_size
 
-Even though the constant is in the _data_ section, it will not be stored in the assembled binary as data. It will instead be substituted by its value during assembly. You can inspect this with _otool -d_ and _otool -tv_ as we did before.
+Even though the constant is in the _data_ section, it will not be stored in the assembled binary as data. It will instead be substituted by its value during assembly. Inspect this with _otool -d_ and _otool -tv_ as we did before.
 
 Finally, we can get rid of _hello_world_end_ by using the special symbol _$_, which in NASM evaluates to the address at the beginning of the line. This is all we need:
 
-	hello_world        db    "Hello World!", 0x0a
-	hello_world_size   equ   $ - hello_world
+    hello_world        db    "Hello World!", 0x0a
+    hello_world_size   equ   $ - hello_world
 
-Your asm-file might now look like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson02/step1.asm
+Your asm-file might now look like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson03/part1.asm
+
+*Step 7: Repetition*
+
+Let's print out a snake game board instead of the boring greeting. For this, we will need to repeat lots of stuff. Luckily, NASM has a pseudo-instruction (http://www.tortall.net/projects/yasm/manual/html/nasm-pseudop.html) for simple repetitions: TIMES
+
+    board:
+        times 80 db "X"
+        db 0x0a
+
+    board_size   equ   $ - board
+
+Printing _board_ instead of _hello_world_ should now give you a nice line of X-es.
+
+Let's have four walls:
+
+    board:
+        ; North wall:
+        times 80 db "X"
+        db 0x0a
+
+        ; One line of west and east walls:
+        db "X"
+        times 78 db " "
+        db "X", 0x0a
+
+        ; Another line of west and east walls:
+        db "X"
+        times 78 db " "
+        db "X", 0x0a
+
+        ; South wall:
+        times 80 db "X"
+        db 0x0a
+
+    board_size   equ   $ - board
+
+Your source code might now look like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson03/part2.asm
+
+*Step 8: Macros*
+
+This is getting ridiculous to read and write. We already know how to get rid of the repeated numerical constant; Add "width equ 80", and substitute the numerical literals appropriately.
+
+However, we have an additional ace up our sleeve to help with this ridiculous explotion of lines: Macros.
+
+    width equ 80
+
+    %macro full_line 0
+        times width db "X"
+        db 0x0a
+    %endmacro
+
+    %macro hollow_line 0
+        db "X"
+        times width-2 db " "
+        db "X", 0x0a
+    %endmacro
+
+These are of course also hideous, but they make the data definition slightly less so:
+
+    board:
+        full_line
+        hollow_line
+        hollow_line
+        full_line
+
+If you are anything like me, you are probably planning on applying TIMES to the macros. Unfortunately, that's a no go, as is recursively applying macros. These limitations can be understood in terms of the strictly two-pass architecture of NASM, but that is not a great consolation.
+
+Macros can have parameters, and the 0s above is us declaring that there will be zero parameters. (http://www.tortall.net/projects/yasm/manual/html/nasm-multi-line-macros.html)
+
+If you copy the _hollow_line_-lines 25 times, you now have something like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson03/part2.asm which outputs a lovely playful area just begging for a game of snake!
+
