@@ -17,35 +17,9 @@ width   equ     80
 
 board:  full_line
 
+        %rep 25
         hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
-
-        hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
-
-        hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
-
-        hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
-
-        hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
-        hollow_line
+        %endrep
 
         full_line
 

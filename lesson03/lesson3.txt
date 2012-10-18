@@ -1,4 +1,4 @@
-#asmtut 3: Labels
+#asmtut 3: Labels (Follow-up to https://plus.google.com/111794994501300143213/posts/TardBAAtq4e)
 
 This time we will automate stuff with the assembler.
 
@@ -98,9 +98,21 @@ These are of course also hideous, but they make the data definition slightly les
         hollow_line
         full_line
 
-If you are anything like me, you are probably planning on applying TIMES to the macros. Unfortunately, that's a no go, as is recursively applying macros. These limitations can be understood in terms of the strictly two-pass architecture of NASM, but that is not a great consolation.
+If you are anything like me, you are probably planning on applying TIMES to the macros. That doesn't work, but luckily _%rep_ does:
+
+    board:
+        full_line
+
+        %rep 25
+        hollow_line
+        %endrep
+
+        full_line
 
 Macros can have parameters, and the 0s above is us declaring that there will be zero parameters. (http://www.tortall.net/projects/yasm/manual/html/nasm-multi-line-macros.html)
 
-If you copy the _hollow_line_-lines 25 times, you now have something like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson03/part2.asm which outputs a lovely playful area just begging for a game of snake!
+Your code should now be similar to this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson03/part3.asm which outputs a lovely playful area just begging for a game of snake!
 
+_Exercise:_ Make something nice with macros. I'm pretty sure there must be an even less ugly way of defining this data :) It should be possible to make a macro that takes in width and height and spits out a box.
+
+_Next lesson: TBA_
