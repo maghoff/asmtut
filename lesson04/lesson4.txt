@@ -8,7 +8,7 @@ Our _board_ is basically a _char[]_ in C lingo, even though it doesn't have a ty
 
 What we have to work with is the address of the start of our array. Again, if you ask the assembler, _board_ is just a label which translates to an address during assembling/linking. But we know better; there is an array of bytes starting at that address. We can get to the _n_-th byte by taking the address _board + n_. Simple! Note that, unlike in C, taking _board + n_ will get us the address _n_ bytes higher than _board_, whereas in C this would depend on the type of _board_.
 
-The snake will start in the middle of the board — this is well established snake dogma — at (40, 13), so we need the address _board + 40 + 13 * (width + 1)_ . Why _(width + 1)_? Because each line in _board_ is terminated by a newline after _width_ bytes. Let's make a mental note that we are smudging up abstractions by keeping the game data stored in a serialized format ready for printing, before we continue to make this mistake more comfortable by introducing a constant: _pitch equ width + 1_.
+The snake will start in the middle of the board — this is well established snake dogma — at (40, 13), so we need the address _board + 40 + 13 * (width + 1)_ . Why _(width + 1)_? Because each line in _board_ is terminated by a newline after _width_ bytes. Let's make a mental note that we are smudging up abstractions by keeping the game data stored in a serialized format ready for printing, before we continue by making this mistake more comfortable by introducing a constant: _pitch equ width + 1_.
 
 Luckily, all the factors we need for this calculation are constants, so we can just present them to nasm for calculation. Let's shove them into the register _r8_:
 
@@ -28,10 +28,10 @@ Your code should now look like this: https://bitbucket.org/maghoff/asmtut/src/ti
 
 We will need an additional _syscall_ to read from standard input. Same old, same old: "man 2 read" (http://linux.die.net/man/2/read), SYS_read is 3 and STDIN_FILENO is 0. We do need a buffer to read into, and for now a one byte big buffer should do:
 
-	; In data-section
-	input_char db 0
+    ; In data-section
+    input_char db 0
 
-	; In code-section, below the write-call:
+    ; In code-section, below the write-call:
     mov rax, 0x02000003     ; SYS_read
     mov rdi, 0              ; filedes = STDIN_FILENO = 0
     mov rsi, input_char     ; buf
@@ -78,23 +78,23 @@ The closest thing we have to work with is called conditional branching, which ma
 
 This translates to the following assembly:
 
-	cmp al, 'w' ; Compare al to 'w'
-	jne .not_up ; "Jump if not equal" to ".not_up"
-	; TODO: Move up
-	jmp .done   ; Unconditionally jump to/goto ".done"
+    cmp al, 'w' ; Compare al to 'w'
+    jne .not_up ; "Jump if not equal" to ".not_up"
+    ; TODO: Move up
+    jmp .done   ; Unconditionally jump to/goto ".done"
 
-	.not_up:
+    .not_up:
 
-	cmp al, 's' ; Compare al to 's'
-	jne .not_up ; "Jump if not equal" to ".not_down"
-	; TODO: Move down
-	jmp .done   ; Unconditionally jump to/goto ".done"
+    cmp al, 's' ; Compare al to 's'
+    jne .not_up ; "Jump if not equal" to ".not_down"
+    ; TODO: Move down
+    jmp .done   ; Unconditionally jump to/goto ".done"
 
-	.not_down:
+    .not_down:
 
-	; etc
+    ; etc
 
-	.done:
+    .done:
 
 In order to keep things neat and tidy, we use local labels. Labels that start with a . are local to the closest label that doesn't start with one, so if we want to, we can think of the labels as _main.not_up_ and so on.
 
