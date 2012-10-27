@@ -1,0 +1,19 @@
+*GDB*
+
+    set disassembly-flavor intel
+
+    disas main
+
+    info registers
+
+    display *0x2800
+    display
+
+    run
+
+    cont
+
+    stepi/nexti/si/ni
+
+    display/i $rip
+

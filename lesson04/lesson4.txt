@@ -1,0 +1,131 @@
+#asmtut 4: Input (Follow-up to https://plus.google.com/111794994501300143213/posts/LS8T4hTYWPm)
+
+Let's start drawing and moving around a snake. Before we can ask the user where he wants to move the snake, we need to have a snake:
+
+*Step 9: Writing into an array*
+
+Our _board_ is basically a _char[]_ in C lingo, even though it doesn't have a type. Which brings me to typing: _board_ is a _char[]_ only because we treat it as one. This is weak typing at its finest :)
+
+What we have to work with is the address of the start of our array. Again, if you ask the assembler, _board_ is just a label which translates to an address during assembling/linking. But we know better; there is an array of bytes starting at that address. We can get to the _n_-th byte by taking the address _board + n_. Simple! Note that, unlike in C, taking _board + n_ will get us the address _n_ bytes higher than _board_, whereas in C this would depend on the type of _board_.
+
+The snake will start in the middle of the board — this is well established snake dogma — at (40, 13), so we need the address _board + 40 + 13 * (width + 1)_ . Why _(width + 1)_? Because each line in _board_ is terminated by a newline after _width_ bytes. Let's make a mental note that we are smudging up abstractions by keeping the game data stored in a serialized format ready for printing, before we continue to make this mistake more comfortable by introducing a constant: _pitch equ width + 1_.
+
+Luckily, all the factors we need for this calculation are constants, so we can just present them to nasm for calculation. Let's shove them into the register _r8_:
+
+    mov r8, board + 40 + 13 * pitch
+
+Now we have the address to the center of the board in _r8_. To write to this address we need the following new syntax:
+
+    mov byte [r8], 'O'
+
+_byte_ tells the assembler the operand size, the thing in brackets is the address to write to and the thing in quotes gets replaced by its ASCII value.
+
+Stick these two lines in at the top of your code and marvel at how much more beautiful everything is with an O in the middle!
+
+Your code should now look like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson04/part1.asm
+
+*Step 10: Read and interpret*
+
+We will need an additional _syscall_ to read from standard input. Same old, same old: "man 2 read" (http://linux.die.net/man/2/read), SYS_read is 3 and STDIN_FILENO is 0. We do need a buffer to read into, and for now a one byte big buffer should do:
+
+	; In data-section
+	input_char db 0
+
+	; In code-section, below the write-call:
+    mov rax, 0x02000003     ; SYS_read
+    mov rdi, 0              ; filedes = STDIN_FILENO = 0
+    mov rsi, input_char     ; buf
+    mov rdx, 1              ; nbyte
+    syscall
+
+At this point we should absolutely check the return value, which we get in _rax_. For a little while, though, we can use this check:
+
+    ; Assume exactly one byte was read
+
+Nice. The byte we assume we have read is currently stuck at _input_char_, but we want it in a register to make it easier to work with:
+
+    mov al, [input_char] ; Almost works!
+
+Again, to combat code size bloat due to 64 bit addresses, AMD forbade 64 bit literal addresses and introduced instruction pointer relative addressing — addressing relative to the address at which the instruction starts. For us, this means we can use _mov al, [rel input_char]_ and have it working or we can do the recommended thing and put _default rel_ at the start of our source file somewhere, and the _rel_ is automatic in the _mov_ instruction. While we're at it, let's just shove in _bits 64_ at the top as well, to make the file more self-describing.
+
+The operand size is implied by using an 8 bit register.
+
+Okay, now we need some control flow similar to what in C would look like:
+
+    if (al == 'w') {
+        // Move up
+    } else if (al == 's') {
+        // Move down
+    } // etc
+
+The closest thing we have to work with is called conditional branching, which makes it look more like:
+
+    if (al != 'w') goto not_up;
+    // Move up
+    goto done;
+
+    not_up:
+
+    if (al != 's') goto not_down;
+    // Move down
+    goto done;
+
+    not_down:
+
+    // etc
+
+    done:
+
+This translates to the following assembly:
+
+	cmp al, 'w' ; Compare al to 'w'
+	jne .not_up ; "Jump if not equal" to ".not_up"
+	; TODO: Move up
+	jmp .done   ; Unconditionally jump to/goto ".done"
+
+	.not_up:
+
+	cmp al, 's' ; Compare al to 's'
+	jne .not_up ; "Jump if not equal" to ".not_down"
+	; TODO: Move down
+	jmp .done   ; Unconditionally jump to/goto ".done"
+
+	.not_down:
+
+	; etc
+
+	.done:
+
+In order to keep things neat and tidy, we use local labels. Labels that start with a . are local to the closest label that doesn't start with one, so if we want to, we can think of the labels as _main.not_up_ and so on.
+
+The _cmp_ instruction compares its two operands by subtracting the right one from the left one and storing some facts about the result in the processor's _rflags_ register. The different conditional branch instructions use these flags to determine if they should make the jump or not. The specific flag we are using here is the zero flag, _zf_. If _al_ and _'w'_ are equal, subtracting them should yield zero, and when a subtraction yields zero, _zf_ is set. In fact, _jne_ is just an alias for the _jnz_ instruction; Jump if not zero. There is also _je_ and _jz_, which makes the jump if the operands are equal.
+
+We want four tests for 'w', 's', 'a', 'd', for up, down, left and right, respectively. Additionally we put in a test for 'q' and make it jump to _.exit_ if detected. You get to do all of this without further instruction.
+
+For the "TODO: Move *"-pieces of the code, we are going to update _r8_ which points into the _board_. For this, I am going to introduce no less than four new instructions along with their C equivalents:
+
+    ; Move up:
+    sub r8, pitch ; r8 -= pitch
+
+    ; Move down:
+    add r8, pitch ; r8 += pitch
+
+    ; Move left:
+    dec r8 ; r8--
+
+    ; Move right:
+    inc r8 ; r8++
+
+At _.done:_, make it _jmp .main_loop_ and put _.main_loop:_ at the instruction that writes the O into the board and voilà, you have a snake-ish game-ish thing with line buffered input. Yes, you need to pump the game loop by pressing enter all the time :)
+
+I encourage you to go and explore what happens when you step outside the board in each direction.
+
+Your code should now look like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson04/part2.asm
+
+_Exercise:_ Implement support for dying by checking if the new cell the snake walks into is empty. A good place to check is just before writing the O. If the target space is not a ' ', exit the program.
+
+When the user enters input that does not move the snake, such as the enter key, you should avoid jumping back to _.main_loop_ so you don't end up killing the player in those cases. Instead, just jump back to the _SYS_read_ call.
+
+Solution available here: https://bitbucket.org/maghoff/asmtut/src/tip/lesson04/exercise.asm
+
+_Next lesson: TBA_
