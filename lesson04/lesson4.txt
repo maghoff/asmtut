@@ -128,4 +128,4 @@ When the user enters input that does not move the snake, such as the enter key, 
 
 Solution available here: https://bitbucket.org/maghoff/asmtut/src/tip/lesson04/exercise.asm
 
-_Next lesson: TBA_
+_Next lesson:_ https://plus.google.com/u/0/111794994501300143213/posts/VcfnDyjS5RU
