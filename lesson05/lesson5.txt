@@ -1,4 +1,4 @@
-#asmtut 4: More snappy interaction (Follow-up to https://plus.google.com/111794994501300143213/posts/PfXkVfSENmb)
+#asmtut 5: More snappy interaction (Follow-up to https://plus.google.com/111794994501300143213/posts/PfXkVfSENmb)
 
 At this point, we are tired of the line-buffered interface. Let's make it more responsive!
 
@@ -156,8 +156,10 @@ You might end up with echoing disabled in your shell after running this. Be awar
 
 Your code should now look similar to this code: https://bitbucket.org/maghoff/asmtut/src/tip/lesson05/part2.asm
 
+
 _Exercise:_ We should be good citizens and reset _sg_flags_ to its initial value upon exit. Store the original _sg_flags_ in a new variable and call _ioctl_ to reset to this state in _.exit:_
 
 Solution available here: https://bitbucket.org/maghoff/asmtut/src/tip/lesson05/exercise.asm
+
 
 _Next lesson: TBA_
