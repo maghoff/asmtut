@@ -1,0 +1,163 @@
+#asmtut 4: More snappy interaction (Follow-up to https://plus.google.com/111794994501300143213/posts/PfXkVfSENmb)
+
+At this point, we are tired of the line-buffered interface. Let's make it more responsive!
+
+*Step 11: Cleanup*
+
+First, let's just clean up our code a bit by putting our constants on top:
+
+    ; System defines:
+
+    SYS_write       equ 0x02000004
+    SYS_read        equ 0x02000003
+    SYS_exit        equ 0x02000001
+
+    STDIN_FILENO    equ 0
+    STDOUT_FILENO   equ 1
+
+Substitute the values in your code accordingly.
+
+You can give the program constants and macros a descriptive header, too: _; Program defines:_ Both of these blocks can go above the _.data_ section.
+
+Additionally, _input_char_ is a bit weird, because we are specifying a value we are never actually reading. This dummy value is stored in the compiled executable, wasting a whole byte. In general, it is better to specify data where we don't care about the initial value in the _.bss_ section. Here, you only reserve the necessary number of bytes you need for the data, rather than specifying the data, so instead of _db_ we use _resb_ for reserving bytes:
+
+    section .bss
+
+    input_char resb 1
+
+Back in the old DOS days, this memory would be uninitialized. It would just contain whatever was left there by previously running processes. That allows leakage of potentially sensitive information, so in modern operating systems this memory gets zero initialized by the OS. The name of this section is an historical accident detailed on Wikipedia: http://en.wikipedia.org/wiki/.bss
+
+We have now cleaned up everything so it looks something like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson05/part1.asm
+
+
+*Step 12: ioctl: Structs and bitmasks*
+
+We need to disable echoing and line buffering for standard in. We are going to implement something like the C versions here: http://www.glue.umd.edu/afs/glue.umd.edu/system/info/olh/Programming/Answers_to_Common_Questions_about_C/c_getch and http://www.glue.umd.edu/afs/glue.umd.edu/system/info/olh/Programming/Answers_to_Common_Questions_about_C/c_terminal_echo
+
+We will need _ioctl_ (http://www.freebsd.org/cgi/man.cgi?query=ioctl&sektion=2):
+
+    SYS_ioctl       equ 0x02000000 + 54
+
+The first argument is the filedescriptor we want to control. _STDIN_FILENO_ should be just what the doctor ordered.
+
+The second argument is the _request_ for _ioctl_. It specifies wihch underlying functionality we are actually looking for. It looks like _ioctl_ is just an indirection step. The _request_ values we need are symbolically _TIOCGETP_ and _TIOCSETP_, and they seem to be defined in /usr/include/sys/ioctl_compat.h:
+
+    #define TIOCGETP    _IOR('t', 8,struct sgttyb)/* get parameters -- gtty */
+    #define TIOCSETP    _IOW('t', 9,struct sgttyb)/* set parameters -- stty */
+
+The easiest way to evaluate these C macros is to make a tiny C program assigning these values to local variables and disassemble the result. Or print the values to standard output if you prefer. I found these values:
+
+    TIOCGETP        equ 0x40067408
+    TIOCSETP        equ 0x80067409
+
+When using either of these with _ioctl_, we need to supply a _struct sgttyb*_ as the third argument. Pointers are easy; that's just the same thing as an address. But what about the struct? Let's look at its definition in the same header file:
+
+    struct sgttyb {
+        char    sg_ispeed;      /* input speed */
+        char    sg_ospeed;      /* output speed */
+        char    sg_erase;       /* erase character */
+        char    sg_kill;        /* kill character */
+        short   sg_flags;       /* mode flags */
+    };
+
+While the precise meaning of this is platform defined, it is not hard to guess correctly what it boils down to. Each _char_ is one byte, this is actually well defined, and the _short_ is two bytes. In assembly-speak on x86, a 16 bit value is called a word, so a _short_ is a _word_. Additionally, we have to consider that the values might be aligned to 32 bit addresses or something. The rules for this are defined in the ABI, but it is much quicker to test it in C and disassemble again :) The values are packed densely, so an instance of this struct translates to:
+
+    sgttyb_instance:
+    sg_ispeed   resb 1
+    sg_ospeed   resb 1
+    sg_erase    resb 1
+    sg_kill     resb 1
+    sg_flags    resw 1 ; Note the use of _reserve word_ here
+    sgttyb_instance_size equ $-sgttyb_instance
+
+Now, we could give in the address of _sgttyb_instance_, and stuff would work!
+
+However, let's abstract things up a notch and use NASM's built-in macros for working with structs. We can define a structure rather than just an instance of it, with _struc_ and _endstruc_ (http://www.nasm.us/doc/nasmdoc4.html#section-4.12.10):
+
+    struc sgttyb
+        .sg_ispeed: resb    1
+        .sg_ospeed: resb    1
+        .sg_erase:  resb    1
+        .sg_kill:   resb    1
+        .sg_flags:  resw    1
+    endstruc
+
+This can go in the _System defines_-block, since it doesn't define or reserve any data. Instead, it gives us seven new symbols to work with; First, the offsets of each struct member:
+
+    ; The struc-declaration above gives us these:
+    sgttyb.sg_ispeed    equ 0
+    sgttyb.sg_ospeed    equ 1
+    sgttyb.sg_erase     equ 2
+    sgttyb.sg_kill      equ 3
+    sgttyb.sg_flags     equ 4
+
+The size of the struct:
+
+    sgttyb_size    equ 6
+
+And finally, just to make things work properly for NASM:
+
+    sgttyb equ 0 ; This one is not interesting
+
+So now, we can reserve the correct number of bytes for one _sgttyb_ instance in the _.bss_ section:
+
+    state   resb sgttyb_size ; Doesn't work in NASM 2.10.05 and earlier
+
+Unfortunately, due to a bug in NASM (http://bugzilla.nasm.us/show_bug.cgi?id=3392231), we need to allocate more space:
+
+    state   resb sgttyb_size * 2 ; *2 to work around bug :(
+
+We can finally do the syscall:
+
+    mov rax, SYS_ioctl
+    mov rdi, STDIN_FILENO
+    mov rsi, TIOCGETP
+    mov rdx, state
+    syscall
+
+If we assume that the syscall succeeded, we can jump right into manipulating _sg_flags_. We want to turn off echoing and line-buffering. Disabling echoing is done by turning off the ECHO flag. Disabling line-buffering is done by enabling "half-cooked" mode or turning on the CBREAK flag. You can read about the crazy naming on Wikipedia: http://en.wikipedia.org/wiki/Cooked_mode
+
+ECHO and CBREAK are defined in ioctl_compat.h:
+
+    CBREAK          equ 0x00000002  ; half-cooked mode
+    ECHO            equ 0x00000008  ; echo input
+
+Now, we need to do the assembly equivalent of the C code:
+
+    state.sg_flags &= ~ECHO;
+    state.sg_flags |= CBREAK;
+
+Even though it is not strictly necessary, we are going to load _sg_flags_ into a register to work with it, instead of working directly on memory:
+
+    mov ax, [state + sgtty.sg_flags]
+
+Now, fundamental arithmetics is pretty straightforward:
+
+    and ax, ~ECHO ; ax &= ~ECHO -- ~ECHO is evaluated by NASM
+    or ax, CBREAK ; ax |= CBREAK
+
+And then, store it back into the struct:
+
+    mov [state + sgtty.sg_flags], ax
+
+We are now ready to set this with ioctl:
+
+    mov rax, SYS_ioctl
+    mov rdi, STDIN_FILENO
+    mov rsi, TIOCSETP ; SET this time around
+    mov rdx, state
+    syscall
+
+This should all go in _main:_, before _.main_loop:_, as it serves as initializing code.
+
+When you have done this, the game should be slightly more interactive since all you have to do now is press a key to make things happen. Note that even though it is no longer line buffered, it is still blocking, so you do need to press buttons. Next time we will make it non-blocking and real time!
+
+You might end up with echoing disabled in your shell after running this. Be aware that you can reset your terminal to a good state with the command _reset_.
+
+Your code should now look similar to this code: https://bitbucket.org/maghoff/asmtut/src/tip/lesson05/part2.asm
+
+_Exercise:_ We should be good citizens and reset _sg_flags_ to its initial value upon exit. Store the original _sg_flags_ in a new variable and call _ioctl_ to reset to this state in _.exit:_
+
+Solution available here: https://bitbucket.org/maghoff/asmtut/src/tip/lesson05/exercise.asm
+
+_Next lesson: TBA_
