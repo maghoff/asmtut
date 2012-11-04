@@ -3,3 +3,4 @@
 ^lesson02/hello$
 ^lesson.*/part\d+$
 ^lesson.*/exercise$
+^.*\.(gdb)?disas$
