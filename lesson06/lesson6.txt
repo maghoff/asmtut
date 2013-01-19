@@ -1,8 +1,43 @@
 #asmtut 6: Live interaction (Follow-up to https://plus.google.com/111794994501300143213/posts/VcfnDyjS5RU)
 
-<Intro>
+Since the last time, the nasm people have been able to fix the bugs I stumbled upon, and pushed them in a release: http://www.nasm.us/pub/nasm/releasebuilds/2.10.06/macosx/nasm-2.10.06-macosx.zip
 
-*Step 13: <...>*
+Anything newer than 2.10.6 is probably also fine. Please note that you have to update if you are following this tutorial on OS X, because we will be triggering the bugs present in earlier versions.
+
+With that out of the way, let's dive into making the game real time, so you don't have to hold down buttons on the keyboard. This should serve as a good repetition after a long hiatus, because we will only be doing more of the stuff we have already learned.
+
+*Step 13: ANSI escape codes*
+
+This part is for you, +Michael Mortensen!
+
+When playing the latest version of the game we are making, we would fill the scrollback buffer in the terminal quite quickly with uninteresting prints of former game states. What we want to do instead is to print new versions of the board on top of the previous version. To do this, we will use an ANSI escape code sequence to move the cursor up to the top of the board each time we print it: http://en.wikipedia.org/wiki/ANSI_escape_code
+
+We want to use the CSI code CUU; Cursor up. The structure for CUU is _ESC_, '[', number of rows to move upwards, 'A'. _ESC_ is the magic value 27 = 0x1b = 033. The number of rows we want to move is _height + 2_, counting the top and bottom solid lines in addition to the _height_ number of open lines:
+
+    move_up  db  0x1b, '[27A' ; Keep number in string equal to height + 2
+
+We can put this right above our definition of _board_, and then print the entire thing in one syscall. We also need the size. Let's put this calculation right under _board_size_:
+
+    move_up_then_board_size equ $-move_up
+
+If we print both of _move_up_ and _board_ instead of just _board_, it will finally stand still and not scroll back:
+
+    mov rsi, move_up        ; buf
+    mov rdx, move_up_then_board_size ; nbyte
+
+In addidtion, we need to print it once without _move_up_ before entering _main_loop_, so we avoid overwriting the users terminal history. This is easily accomplished by sticking an additional _syscall_ to _SYS_write_ just before _main_loop_.
+
+Your program should now look like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson06/part1.asm
+
+
+*Step 14: Nonblocking input*
+
+    fcntl
+
+
+*Step 15: Sleep*
+
+    select
 
 
 _Exercise_: <...>
