@@ -1,4 +1,4 @@
-TARGETS=part1
+TARGETS=part1 part2
 ENTRY_POINT=main
 ASM_FLAGS=-f macho64
 LINK_FLAGS=-macosx_version_min 10.6 -e $(ENTRY_POINT)
@@ -7,7 +7,7 @@ LINK_FLAGS=-macosx_version_min 10.6 -e $(ENTRY_POINT)
 all: $(TARGETS)
 
 run: all
-	./part1
+	./part2
 
 r: run
 

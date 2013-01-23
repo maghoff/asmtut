@@ -30,17 +30,21 @@ In addidtion, we need to print it once without _move_up_ before entering _main_l
 Your program should now look like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson06/part1.asm
 
 
-*Step 14: Nonblocking input*
+*Step 14: Velocity*
+
+Next we will get some velocity going, so that the snake keeps moving in the direction it's going. We will do this by replacing the _inc_, _dec_, _add_ and _sub_ instructions in our _cmp_/_jne_ block by storing the appropriate velocity in _r15_ with appropriate _mov r15, <imm>_ instructions. We'll put in _add r8, r15_ just below _.main_loop:_. The additional details I'll leave as an excercise :)
+
+Hopefully, you will end up with something like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson06/part2.asm
+
+
+*Step 15: Nonblocking input*
 
     fcntl
 
 
-*Step 15: Sleep*
+*Step 16: Sleep*
 
     select
-
-
-_Exercise_: <...>
 
 
 _Next lesson: TBA_
