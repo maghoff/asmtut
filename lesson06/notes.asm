@@ -145,8 +145,8 @@ main:
 
     mov rax, SYS_write
     mov rdi, STDOUT_FILENO  ; filedes
-    mov rsi, board_pos          ; buf
-    mov rdx, board_pos_size     ; nbyte
+    mov rsi, board_pos      ; buf
+    mov rdx, board_pos_size ; nbyte
     syscall
 
     cmp rax, board_pos_size
