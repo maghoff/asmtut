@@ -39,7 +39,27 @@ Hopefully, you will end up with something like this: https://bitbucket.org/magho
 
 *Step 15: Nonblocking input*
 
-    fcntl
+Even though we are in half-cooked (sigh) mode, we are still in blocking mode. The _SYS_read_ call blocks until it can read at least one byte. Let's finally change that. We will do that by setting and unsetting the _O_NONBLOCK_ flag on _STDIN_FILENO_ with _SYS_fcntl_:
+
+    SYS_fcntl       equ 0x02000000 + 92
+
+    F_SETFL         equ 0x00000004
+    O_NONBLOCK      equ 0x00000004
+
+    mov rax, SYS_fcntl
+    mov rdi, STDIN_FILENO
+    mov rsi, F_SETFL
+    mov rdx, O_NONBLOCK ; 0 to unset
+    syscall
+
+Unfortunately, even though we set this flag specifically on _STDIN_FILENO_, it magically applies to standard out as well. We don't need or want to handle nonblocking output, so we opt for the cheap workaround of setting and unsetting _O_NONBLOCK_ before and after calls to _SYS_read_. We'll set the flag just before _.read_more:_ and unset it between _.done:_ and _jmp .main_loop_. Running the game now, it seems to still be kind of blocking, at least until we press one key. This is because we currently do not attempt to tell the difference between having read one byte and not. Let's fix that.
+
+Begin by removing the "Assume exactly one byte was read"-comment. In _man 2 read_ we see that the count of bytes read will be returned, and from the all-mighty ABI we learn that such a return value will be passed in _rax_. When no bytes are read because of _O_NONBLOCK_, _SYS_read_ will actually return -1 and claim that the error _EAGAIN_ has occurred. The simplest conclusion we can draw from this is that we check _rax_ and jump to _.done_ if it's not 1:
+
+    cmp rax, 1
+    jne .done
+
+Your game should now be incredibly unplayable, and look something like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson06/part3.asm
 
 
 *Step 16: Sleep*
