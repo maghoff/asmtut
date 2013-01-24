@@ -162,4 +162,4 @@ _Exercise:_ We should be good citizens and reset _sg_flags_ to its initial value
 Solution available here: https://bitbucket.org/maghoff/asmtut/src/tip/lesson05/exercise.asm
 
 
-_Next lesson: TBA_
+_Next lesson:_ https://plus.google.com/111794994501300143213/posts/domAeYdQ4Bp
