@@ -62,9 +62,47 @@ Begin by removing the "Assume exactly one byte was read"-comment. In _man 2 read
 Your game should now be incredibly unplayable, and look something like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson06/part3.asm
 
 
-*Step 16: Sleep*
+*Step 16: Real time*
 
-    select
+At this point we need some kind of real time game loop. However, it is easier to cheat and just sleep for a bit between each frame. The price we have to pay for going the easy route is that we have to implement _sleep_ in terms of _select_, since _sleep_ is not available directly as a syscall.
+
+    SYS_select      equ 0x02000000 + 93
+
+From _man select_:
+
+    int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict errorfds, struct timeval *restrict timeout);
+
+_nfds_, _readfds_, _writefds_, and _errorfds_ can all be 0. That should fill up rdi, rsi, rdx and rcx. _timeout_ must point to a valid _timeval_ struct instance, its address placed in _r8_. Oh, nuts. Since we are already using _r8_, this is bad news. Let's just replace all instances of _r8_ with _r14_ to avert immediate disaster.
+
+The declaration of _struct timeval_ is messy and ridden with preprocessor noise, but it boils down to this nasm:
+
+    struc timeval
+        ; resq: reserve quadword (64 bits)
+        .tv_sec:    resq    1
+        .tv_nsec:   resq    1
+    endstruc
+
+Now we get to exercise nasm's syntax for defining an instance of a struct in the data section:
+
+    timeout:
+        istruc timeval
+            at timeval.tv_sec,  dq 0
+            at timeval.tv_nsec, dq 100000
+        iend
+
+Then we're all set for adding the sleep call, right before _.read_more:_, so we can read any keypresses that happened during the sleep:
+
+    mov rax, SYS_select
+    mov rdi, 0              ; nfds
+    mov rsi, 0              ; readfds
+    mov rdx, 0              ; writefds
+    mov rcx, 0              ; errorfds
+    mov r8, timeout         ; timeout
+    syscall
+
+Your code should now approximate this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson06/part4.asm
+
+And playing the game should look kind of like this: http://www.youtube.com/watch?v=UnjGoughmH0v
 
 
 _Next lesson: TBA_

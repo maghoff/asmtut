@@ -19,6 +19,7 @@ TIOCSETP        equ 0x80067409
 CBREAK          equ 0x00000002  ; half-cooked mode
 ECHO            equ 0x00000008  ; echo input
 
+; /usr/include/sys/filio.h
 F_SETFL         equ 0x00000004
 O_NONBLOCK      equ 0x00000004
 
