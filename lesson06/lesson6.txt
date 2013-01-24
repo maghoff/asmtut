@@ -25,7 +25,7 @@ If we print both of _move_up_ and _board_ instead of just _board_, it will final
     mov rsi, move_up        ; buf
     mov rdx, move_up_then_board_size ; nbyte
 
-In addidtion, we need to print it once without _move_up_ before entering _main_loop_, so we avoid overwriting the users terminal history. This is easily accomplished by sticking an additional _syscall_ to _SYS_write_ just before _main_loop_.
+In addidtion, we need to print it once without _move_up_ before entering _main_loop_, so we avoid overwriting the user's terminal history. This is easily accomplished by sticking an additional _syscall_ to _SYS_write_ just before _main_loop_.
 
 Your program should now look like this: https://bitbucket.org/maghoff/asmtut/src/tip/lesson06/part1.asm
 
@@ -70,7 +70,7 @@ At this point we need some kind of real time game loop. However, it is easier to
 
 From _man select_:
 
-    int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict errorfds, struct timeval *restrict timeout);
+    int select(int nfds, fd_set* readfds, fd_set* writefds, fd_set* errorfds, struct timeval* timeout);
 
 _nfds_, _readfds_, _writefds_, and _errorfds_ can all be 0. That should fill up rdi, rsi, rdx and rcx. _timeout_ must point to a valid _timeval_ struct instance, its address placed in _r8_. Oh, nuts. Since we are already using _r8_, this is bad news. Let's just replace all instances of _r8_ with _r14_ to avert immediate disaster.
 
